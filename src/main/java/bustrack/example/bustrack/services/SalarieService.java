@@ -54,7 +54,10 @@ public class SalarieService {
 
         // Update existing Salarie properties with the ones from updatedSalarie
         existingSalarie.setMatricule(updatedSalarie.getMatricule());
-        existingSalarie.setPassword(updatedSalarie.getPassword());
+        // Only overwrite password when a new (already hashed) one is explicitly provided
+        if (updatedSalarie.getPassword() != null && !updatedSalarie.getPassword().isBlank()) {
+            existingSalarie.setPassword(updatedSalarie.getPassword());
+        }
         existingSalarie.setNom(updatedSalarie.getNom());
         existingSalarie.setPrenom(updatedSalarie.getPrenom());
 
@@ -66,7 +69,7 @@ public class SalarieService {
         existingSalarie.setBus(updatedBus);
 
         // Fetch the updated Station entity from the repository
-        Station updatedStation = stationRepository.findByLibelle(updatedSalarie.getStation().getLibelle())
+        Station updatedStation = stationRepository.findById(updatedSalarie.getStation().getId())
                 .orElseThrow(() -> new EntityNotFoundException("Station not found"));
 
         // Set the updated Station entity to the existing Salarie entity

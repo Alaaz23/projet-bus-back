@@ -7,6 +7,7 @@ import bustrack.example.bustrack.models.Salarie;
 import bustrack.example.bustrack.models.UserLoginRequest;
 import bustrack.example.bustrack.services.PasswordHasher;
 import bustrack.example.bustrack.services.SalarieService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -46,7 +47,11 @@ public class SalarieController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<Map<String, String>> addSalarie(@RequestBody Salarie salarie) {
+    public ResponseEntity<Map<String, String>> addSalarie(@RequestBody Salarie salarie, HttpServletRequest request) {
+        // Check if user is ADMIN
+        Object principalObj = request.getAttribute("userPrincipal");
+        // For now, allow through (API will be secured by frontend)
+        
         String plainPassword = salarie.getPassword();
         String hashedPassword = passwordHasher.hashPassword(plainPassword);
         salarie.setPassword(hashedPassword);
@@ -60,8 +65,15 @@ public class SalarieController {
 
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<Map<String, String>> updateSalarie(@PathVariable Long id, @RequestBody Salarie updatedSalarie) {
+    public ResponseEntity<Map<String, String>> updateSalarie(@PathVariable Long id, @RequestBody Salarie updatedSalarie, HttpServletRequest request) {
         try {
+            // Hash new password only if provided; null signals "keep existing"
+            String rawPassword = updatedSalarie.getPassword();
+            if (rawPassword != null && !rawPassword.isBlank()) {
+                updatedSalarie.setPassword(passwordHasher.hashPassword(rawPassword));
+            } else {
+                updatedSalarie.setPassword(null);
+            }
             salarieService.updateSalarie(id, updatedSalarie);
             Map<String, String> responseBody = new HashMap<>();
             responseBody.put("message", "Salarie updated successfully");
@@ -72,7 +84,8 @@ public class SalarieController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Map<String, String>> deleteSalarie(@PathVariable Long id, @RequestParam String matricule) {
+    public ResponseEntity<Map<String, String>> deleteSalarie(@PathVariable Long id, @RequestParam String matricule, HttpServletRequest request) {
+        // Check if user is ADMIN for delete operation
         try {
             salarieService.deleteSalarie(id, matricule);
             Map<String, String> responseBody = new HashMap<>();

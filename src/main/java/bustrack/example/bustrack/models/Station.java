@@ -1,5 +1,6 @@
 package bustrack.example.bustrack.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -26,10 +27,9 @@ public class Station {
     @Column(name = "latitude")
     private Double latitude;
 
-
     @ManyToOne
     @JoinColumn(name = "id_t")
+    @JsonIgnoreProperties({"stations", "hibernateLazyInitializer", "handler"})
     private Traget traget;
-
 
 }

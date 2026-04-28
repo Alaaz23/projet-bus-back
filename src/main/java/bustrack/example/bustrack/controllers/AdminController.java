@@ -7,6 +7,7 @@ import bustrack.example.bustrack.models.UserLoginRequest;
 import bustrack.example.bustrack.services.AdminService;
 import bustrack.example.bustrack.services.PasswordHasher;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,7 +43,12 @@ public class AdminController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<String> addAdmin(@RequestBody Admin admin) {
+    public ResponseEntity<String> addAdmin(@RequestBody Admin admin, HttpServletRequest request) {
+        Object principalObj = request.getAttribute("userPrincipal");
+        if (principalObj == null || !(principalObj instanceof bustrack.example.bustrack.services.AuthService.UserPrincipal)) {
+            return ResponseEntity.status(403).body("Forbidden");
+        }
+
         String plainPassword = admin.getPassword();
         String hashedPassword = passwordHasher.hashPassword(plainPassword);
         admin.setPassword(hashedPassword);
@@ -52,7 +58,12 @@ public class AdminController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<String> updateAdmin(@PathVariable Long id, @RequestBody Admin updatedAdmin) {
+    public ResponseEntity<String> updateAdmin(@PathVariable Long id, @RequestBody Admin updatedAdmin, HttpServletRequest request) {
+        Object principalObj = request.getAttribute("userPrincipal");
+        if (principalObj == null || !(principalObj instanceof bustrack.example.bustrack.services.AuthService.UserPrincipal)) {
+            return ResponseEntity.status(403).body("Forbidden");
+        }
+
         String plainPassword = updatedAdmin.getPassword();
         String hashedPassword = passwordHasher.hashPassword(plainPassword);
         updatedAdmin.setPassword(hashedPassword);
@@ -62,7 +73,12 @@ public class AdminController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<String> deleteAdmin(@PathVariable Long id) {
+    public ResponseEntity<String> deleteAdmin(@PathVariable Long id, HttpServletRequest request) {
+        Object principalObj = request.getAttribute("userPrincipal");
+        if (principalObj == null || !(principalObj instanceof bustrack.example.bustrack.services.AuthService.UserPrincipal)) {
+            return ResponseEntity.status(403).body("Forbidden");
+        }
+
         adminService.deleteAdmin(id);
         return ResponseEntity.ok("Admin deleted successfully");
     }

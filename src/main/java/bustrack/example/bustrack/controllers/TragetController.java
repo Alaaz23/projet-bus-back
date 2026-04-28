@@ -31,10 +31,10 @@ public class TragetController {
         return ResponseEntity.ok(id_t);
     }
     @GetMapping("/getAll")
-    public ResponseEntity<List<Traget>> getAllTragets() {
-        List<Traget> tragets = tragetService.getAllTragets();
-        return ResponseEntity.ok(tragets);
+    public ResponseEntity<List<Traget>> getAllTragets2() {
+        return ResponseEntity.ok(tragetService.getAllTragets());
     }
+
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Long> deleteTraget(@PathVariable Long id) {
         tragetService.deleteTraget(id);
@@ -57,4 +57,5 @@ public class TragetController {
         }
     }
 }
+
 

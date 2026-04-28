@@ -1,5 +1,6 @@
 package bustrack.example.bustrack.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -27,12 +28,13 @@ public class Bus {
 
     @ManyToOne
     @JoinColumn(name = "id_p")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Points points;
 
     @ManyToOne
     @JoinColumn(name = "id_t")
+    @JsonIgnoreProperties({"stations", "hibernateLazyInitializer", "handler"})
     private Traget traget;
-
 
 }
 
