@@ -13,6 +13,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins(
                         "http://localhost:4200",
                         "http://localhost:5000",
+                        "http://localhost:5001",
                         "http://localhost:3000",
                         "http://10.0.2.2:8081"
                 )
