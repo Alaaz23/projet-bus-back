@@ -16,6 +16,7 @@ public class AuthResponse {
     private String displayName;
     private String role;
     private String token;
+    private String refreshToken;
 
     public AuthResponse(boolean success, String message) {
         this.success = success;
