@@ -107,20 +107,17 @@ public class SalarieController {
         try {
             Salarie user = salarieService.findBymatricule(matricule);
             if (user.getPassword().equals(passwordHasher.hashPassword(password))) {
-                // Authentication successful
                 Long id = user.getId();
                 String nom = user.getNom();
                 Long id_st = user.getStation().getId();
                 Long id_b = user.getBus().getId();
                 String prenom = user.getPrenom();
-                return ResponseEntity.ok(new LoginResponse(true, id, nom, prenom, id_st, id_b, password));
+                return ResponseEntity.ok(new LoginResponse(true, id, nom, prenom, id_st, id_b));
             } else {
-                // Incorrect password
-                return ResponseEntity.ok(new LoginResponse(false, null, null, null, null, null, password));
+                return ResponseEntity.ok(new LoginResponse(false, null, null, null, null, null));
             }
         } catch (UserNotFoundException e) {
-            // User not found
-            return ResponseEntity.ok(new LoginResponse(false, null, null, null, null, null, null));
+            return ResponseEntity.ok(new LoginResponse(false, null, null, null, null, null));
         }
     }
 

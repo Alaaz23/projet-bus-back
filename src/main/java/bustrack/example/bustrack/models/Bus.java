@@ -36,5 +36,8 @@ public class Bus {
     @JsonIgnoreProperties({"stations", "hibernateLazyInitializer", "handler"})
     private Traget traget;
 
+    @Column(name = "statut", columnDefinition = "varchar(20) default 'EN_ROUTE'")
+    private String statut = "EN_ROUTE"; // EN_ROUTE | A_LARRET | HORS_SERVICE
+
 }
 

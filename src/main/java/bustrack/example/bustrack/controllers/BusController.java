@@ -97,6 +97,52 @@ public class BusController {
             return ResponseEntity.notFound().build();
         }
     }
+    /** ── STATUT BUS ── **/
+    @PutMapping("/{id}/statut")
+    public ResponseEntity<Map<String, String>> updateStatut(
+            @PathVariable Long id, @RequestBody Map<String, String> body) {
+        String statut = body.get("statut");
+        if (statut == null || !java.util.List.of("EN_ROUTE", "A_LARRET", "HORS_SERVICE").contains(statut)) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "Statut invalide"));
+        }
+        return busService.getBusById(id).map(bus -> {
+            bus.setStatut(statut);
+            busService.saveBus(bus);
+            return ResponseEntity.ok(java.util.Map.of("statut", statut));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    /** ── ETA INTELLIGENT (Haversine) ── **/
+    @GetMapping("/{id}/eta")
+    public ResponseEntity<Map<String, Object>> getEta(
+            @PathVariable Long id,
+            @RequestParam double stationLat,
+            @RequestParam double stationLon) {
+        return busService.getBusById(id).map(bus -> {
+            Map<String, Object> result = new java.util.HashMap<>();
+            if (bus.getPoints() == null) {
+                result.put("eta", null);
+                result.put("message", "Position GPS non disponible");
+                return ResponseEntity.ok(result);
+            }
+            double busLat = bus.getPoints().getLatitude();
+            double busLon = bus.getPoints().getLongitude();
+            // Formule Haversine
+            final double R = 6371.0;
+            double dLat = Math.toRadians(stationLat - busLat);
+            double dLon = Math.toRadians(stationLon - busLon);
+            double a = Math.sin(dLat/2)*Math.sin(dLat/2)
+                    + Math.cos(Math.toRadians(busLat))*Math.cos(Math.toRadians(stationLat))
+                    * Math.sin(dLon/2)*Math.sin(dLon/2);
+            double distanceKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            int etaMinutes = (int) Math.ceil((distanceKm / 30.0) * 60); // 30 km/h vitesse moyenne
+            result.put("distanceKm", Math.round(distanceKm * 10.0) / 10.0);
+            result.put("etaMinutes", etaMinutes);
+            result.put("statut", bus.getStatut());
+            return ResponseEntity.ok(result);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("des/{id}")
     public ResponseEntity<Map<String, Object>> getBusLoc(@PathVariable Long id) {
         Optional<Bus> busOptional = busService.getBusById(id);

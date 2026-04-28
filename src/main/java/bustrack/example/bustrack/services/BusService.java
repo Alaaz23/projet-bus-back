@@ -50,4 +50,8 @@ public class BusService {
         return busRepository.findById(id);
     }
 
+    public Bus saveBus(Bus bus) {
+        return busRepository.save(bus);
+    }
+
 }
