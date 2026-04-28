@@ -10,6 +10,6 @@ import java.util.Optional;
 public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     // You can add custom query methods if needed
     List<Feedback> findByChecked(boolean checked);
+    long countByChecked(boolean checked);
     void deleteBySalarieId(Long salarieId);
-
 }
