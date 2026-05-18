@@ -1,7 +1,9 @@
 package bustrack.example.bustrack.services;
 
+import bustrack.example.bustrack.models.Bus;
 import bustrack.example.bustrack.models.Station;
 import bustrack.example.bustrack.models.Traget;
+import bustrack.example.bustrack.repositories.BusRepository;
 import bustrack.example.bustrack.repositories.StationRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,9 @@ public class TragetService {
     private PointsRepository pointsRepository;
 @Autowired
 private StationRepository stationRepository;
+
+    @Autowired
+    private BusRepository busRepository;
     public Long addTraget(Traget traget) {
         Traget savedTraget = tragetRepository.save(traget);
         return savedTraget.getId();
@@ -63,4 +68,14 @@ private StationRepository stationRepository;
         List<Station> stations = traget.getStations();
 
         return stations;
-    }}
+    }
+    public List<Station> getAllStationsByBusId(Long busId) {
+        Bus bus = busRepository.findById(busId)
+                .orElseThrow(() -> new EntityNotFoundException("Bus not found: " + busId));
+        Traget traget = bus.getTraget();
+        if (traget == null) {
+            throw new EntityNotFoundException("No trajet assigned to bus: " + busId);
+        }
+        return traget.getStations();
+    }
+}

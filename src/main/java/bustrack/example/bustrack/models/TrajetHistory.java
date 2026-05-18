@@ -1,5 +1,6 @@
 package bustrack.example.bustrack.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -14,12 +15,14 @@ public class TrajetHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "bus_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "traget", "points"})
     private Bus bus;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "salarie_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "bus", "station", "password"})
     private Salarie salarie;
 
     @Column(nullable = false)

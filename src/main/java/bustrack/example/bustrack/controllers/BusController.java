@@ -1,6 +1,9 @@
 package bustrack.example.bustrack.controllers;
 
 import bustrack.example.bustrack.models.Bus;
+import bustrack.example.bustrack.models.Station;
+import bustrack.example.bustrack.services.TragetService;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -8,9 +11,11 @@ import org.springframework.web.bind.annotation.*;
 import bustrack.example.bustrack.services.BusService;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/buses")
@@ -18,6 +23,9 @@ public class BusController {
 
     @Autowired
     private BusService busService;
+
+    @Autowired
+    private TragetService tragetService;
 
     @PostMapping("/add")
     public ResponseEntity<Map<String, Object>> addBus(@RequestBody Bus bus) {
@@ -160,6 +168,73 @@ public class BusController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
             }
         } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
+     * Retourne la configuration complète de la route pour un bus donné.
+     * Source de vérité partagée entre l'application web (Angular) et mobile (Flutter).
+     *
+     * Réponse JSON :
+     * {
+     *   "busId": 7,
+     *   "depName": "Ariana",
+     *   "destName": "Sofrecom",
+     *   "waypoints": [
+     *     { "name": "Ariana", "lat": 36.862, "lng": 10.1935 },
+     *     ...
+     *   ]
+     * }
+     *
+     * Retourne 404 si le bus ou son trajet est introuvable.
+     * Retourne 204 si le trajet a moins de 2 stations.
+     *
+     * Note : la BDD stocke les colonnes latitude/longitude inversées.
+     * Ce endpoint corrige l'inversion (longitude_col → lat, latitude_col → lng)
+     * et valide que les coordonnées sont en Tunisie (bbox 30-38N, 7.5-11.5E).
+     */
+    @GetMapping("/{id}/route")
+    public ResponseEntity<Map<String, Object>> getBusRoute(@PathVariable Long id) {
+        try {
+            List<Station> stations = tragetService.getAllStationsByBusId(id);
+            if (stations.size() < 2) {
+                return ResponseEntity.noContent().build();
+            }
+
+            // Correction inversion lat/lng dans la BDD :
+            // colonne 'longitude' contient la latitude réelle, et vice-versa
+            List<Map<String, Object>> waypoints = stations.stream().map(s -> {
+                double actualLat = s.getLongitude() != null ? s.getLongitude() : 0.0;
+                double actualLng = s.getLatitude()  != null ? s.getLatitude()  : 0.0;
+                // Validation bbox Tunisie
+                boolean valid = actualLat >= 30 && actualLat <= 38
+                        && actualLng >= 7.5 && actualLng <= 11.5;
+                if (!valid) {
+                    // Coordonnées hors Tunisie — retourner null pour signaler l'erreur
+                    return (Map<String, Object>) null;
+                }
+                Map<String, Object> wp = new LinkedHashMap<>();
+                wp.put("name", s.getLibelle() != null ? s.getLibelle() : "");
+                wp.put("lat", actualLat);
+                wp.put("lng", actualLng);
+                return wp;
+            }).collect(Collectors.toList());
+
+            // Si des stations ont des coordonnées invalides, refuser la réponse
+            boolean anyInvalid = waypoints.stream().anyMatch(w -> w == null);
+            if (anyInvalid) {
+                return ResponseEntity.noContent().build();
+            }
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("busId", id);
+            result.put("depName",  waypoints.get(0).get("name"));
+            result.put("destName", waypoints.get(waypoints.size() - 1).get("name"));
+            result.put("waypoints", waypoints);
+
+            return ResponseEntity.ok(result);
+        } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
     }

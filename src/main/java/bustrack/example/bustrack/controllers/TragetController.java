@@ -52,7 +52,16 @@ public class TragetController {
             List<Station> stations = tragetService.getAllStationsByStationId(stationId);
             return ResponseEntity.ok(stations);
         } catch (EntityNotFoundException e) {
-            // Handle the case where the station ID does not exist
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/bus/{busId}")
+    public ResponseEntity<?> getAllStationsByBusId(@PathVariable Long busId) {
+        try {
+            List<Station> stations = tragetService.getAllStationsByBusId(busId);
+            return ResponseEntity.ok(stations);
+        } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
     }

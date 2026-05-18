@@ -57,6 +57,7 @@ public class AuthService {
             if (salarie.getPassword().equals(passwordHasher.hashPassword(password))) {
                 String accessToken = jwtTokenProvider.generateAccessToken(username, "USER");
                 RefreshToken refreshToken = refreshTokenService.createRefreshToken(username, "USER");
+                Long busId = (salarie.getBus() != null) ? salarie.getBus().getId() : null;
                 AuthResponse resp = new AuthResponse(
                         true,
                         "Login successful",
@@ -66,6 +67,7 @@ public class AuthService {
                         "Bearer " + accessToken,
                         refreshToken.getToken()
                 );
+                resp.setBusId(busId);
                 return resp;
             }
         }

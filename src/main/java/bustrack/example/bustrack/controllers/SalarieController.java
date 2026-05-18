@@ -109,9 +109,10 @@ public class SalarieController {
             if (user.getPassword().equals(passwordHasher.hashPassword(password))) {
                 Long id = user.getId();
                 String nom = user.getNom();
-                Long id_st = user.getStation().getId();
-                Long id_b = user.getBus().getId();
                 String prenom = user.getPrenom();
+                // Garde-fou : bus ou station peut être null si non assigné en BDD
+                Long id_st = (user.getStation() != null) ? user.getStation().getId() : 0L;
+                Long id_b  = (user.getBus()     != null) ? user.getBus().getId()     : 0L;
                 return ResponseEntity.ok(new LoginResponse(true, id, nom, prenom, id_st, id_b));
             } else {
                 return ResponseEntity.ok(new LoginResponse(false, null, null, null, null, null));
