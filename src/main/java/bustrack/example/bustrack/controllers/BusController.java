@@ -1,7 +1,9 @@
 package bustrack.example.bustrack.controllers;
 
 import bustrack.example.bustrack.models.Bus;
+import bustrack.example.bustrack.models.BusGpsPosition;
 import bustrack.example.bustrack.models.Station;
+import bustrack.example.bustrack.repositories.BusGpsPositionRepository;
 import bustrack.example.bustrack.services.TragetService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,9 @@ public class BusController {
 
     @Autowired
     private TragetService tragetService;
+
+    @Autowired
+    private BusGpsPositionRepository gpsPositionRepository;
 
     @PostMapping("/add")
     public ResponseEntity<Map<String, Object>> addBus(@RequestBody Bus bus) {
@@ -118,35 +123,48 @@ public class BusController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
-    /** ── ETA INTELLIGENT (Haversine) ── **/
+    /** ── ETA INTELLIGENT (position GPS temps réel + Haversine) ── **/
     @GetMapping("/{id}/eta")
     public ResponseEntity<Map<String, Object>> getEta(
             @PathVariable Long id,
             @RequestParam double stationLat,
             @RequestParam double stationLon) {
-        return busService.getBusById(id).map(bus -> {
-            Map<String, Object> result = new java.util.HashMap<>();
-            if (bus.getPoints() == null) {
+        Map<String, Object> result = new java.util.HashMap<>();
+        // Utiliser la dernière position GPS temps réel
+        Optional<BusGpsPosition> latestPos = gpsPositionRepository.findTopByBusIdOrderByTimestampDesc(id);
+        double busLat, busLon;
+        double speedKmh = 43.2; // 12 m/s par défaut (vitesse simulation)
+        if (latestPos.isPresent()) {
+            BusGpsPosition gps = latestPos.get();
+            busLat = gps.getLatitude();
+            busLon = gps.getLongitude();
+            if (gps.getSpeed() != null && gps.getSpeed() > 2.0) {
+                speedKmh = gps.getSpeed();
+            }
+        } else {
+            // Fallback : position statique du bus
+            Optional<Bus> busOpt = busService.getBusById(id);
+            if (busOpt.isEmpty() || busOpt.get().getPoints() == null) {
                 result.put("eta", null);
                 result.put("message", "Position GPS non disponible");
                 return ResponseEntity.ok(result);
             }
-            double busLat = bus.getPoints().getLatitude();
-            double busLon = bus.getPoints().getLongitude();
-            // Formule Haversine
-            final double R = 6371.0;
-            double dLat = Math.toRadians(stationLat - busLat);
-            double dLon = Math.toRadians(stationLon - busLon);
-            double a = Math.sin(dLat/2)*Math.sin(dLat/2)
-                    + Math.cos(Math.toRadians(busLat))*Math.cos(Math.toRadians(stationLat))
-                    * Math.sin(dLon/2)*Math.sin(dLon/2);
-            double distanceKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            int etaMinutes = (int) Math.ceil((distanceKm / 30.0) * 60); // 30 km/h vitesse moyenne
-            result.put("distanceKm", Math.round(distanceKm * 10.0) / 10.0);
-            result.put("etaMinutes", etaMinutes);
-            result.put("statut", bus.getStatut());
-            return ResponseEntity.ok(result);
-        }).orElse(ResponseEntity.notFound().build());
+            busLat = busOpt.get().getPoints().getLatitude();
+            busLon = busOpt.get().getPoints().getLongitude();
+        }
+        // Formule Haversine
+        final double R = 6371.0;
+        double dLat = Math.toRadians(stationLat - busLat);
+        double dLon = Math.toRadians(stationLon - busLon);
+        double a = Math.sin(dLat/2)*Math.sin(dLat/2)
+                + Math.cos(Math.toRadians(busLat))*Math.cos(Math.toRadians(stationLat))
+                * Math.sin(dLon/2)*Math.sin(dLon/2);
+        double distanceKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        int etaMinutes = (int) Math.ceil((distanceKm / speedKmh) * 60);
+        result.put("distanceKm", Math.round(distanceKm * 10.0) / 10.0);
+        result.put("etaMinutes", etaMinutes);
+        busService.getBusById(id).ifPresent(b -> result.put("statut", b.getStatut()));
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("des/{id}")
