@@ -22,7 +22,7 @@ import time
 import requests
 
 # ─── 11 Stations dans l'ordre EXACT — coordonnées imposées par le trajet réel ──
-STATIONS = [
+STATIONS_BUS6 = [
     {"name": "Borj Cedriya",    "lat": 36.705199, "lon": 10.407781},
     {"name": "Hammem Chatt",    "lat": 36.713843, "lon": 10.368674},
     {"name": "Hammem Lif",      "lat": 36.727068, "lon": 10.336807},
@@ -31,10 +31,32 @@ STATIONS = [
     {"name": "Radès",           "lat": 36.756550, "lon": 10.278947},
     {"name": "Pont Radès",      "lat": 36.764836, "lon": 10.277623},
     {"name": "Radès chatt",     "lat": 36.772570, "lon": 10.287141},
-    {"name": "TGM",             "lat": 36.801808, "lon": 10.195353},  # via Pont de Radès
+    {"name": "TGM",             "lat": 36.801808, "lon": 10.195353},
     {"name": "Lac 0",           "lat": 36.809757, "lon": 10.193572},
     {"name": "Lac 1",           "lat": 36.831374, "lon": 10.232228},
 ]
+
+STATIONS_BUS7 = [
+    {"name": "Ariana",             "lat": 36.862000, "lon": 10.193500},
+    {"name": "Cité Ettadhamen",    "lat": 36.849500, "lon": 10.198000},
+    {"name": "Centre Urbain Nord", "lat": 36.840200, "lon": 10.213000},
+    {"name": "Sofrecom",           "lat": 36.831585, "lon": 10.232803},
+]
+
+STATIONS_BUS8 = [
+    {"name": "Bizerte",          "lat": 37.269527, "lon":  9.874099},
+    {"name": "Bizerte Zarzouna", "lat": 37.264961, "lon":  9.885155},
+    {"name": "Sofrecom",         "lat": 36.831585, "lon": 10.232803},
+]
+
+# Alias pour compatibilité (bus_simulator.py utilise STATIONS au niveau module)
+STATIONS = STATIONS_BUS6
+
+BUS_STATIONS: dict[int, list] = {
+    6: STATIONS_BUS6,
+    7: STATIONS_BUS7,
+    8: STATIONS_BUS8,
+}
 
 OSRM_URL       = "https://router.project-osrm.org/route/v1/driving"
 DEFAULT_BACKEND = "http://localhost:8081/Bus-tracking/gps/position"
@@ -191,12 +213,17 @@ def main():
     )
     parser.add_argument("--backend-url", default=DEFAULT_BACKEND,
                         help=f"URL POST GPS (défaut: {DEFAULT_BACKEND})")
-    parser.add_argument("--bus-id",   type=int,   default=7,    help="ID bus (défaut: 7)")
+    parser.add_argument("--bus-id",   type=int,   default=6,    help="ID bus (défaut: 6 = Borj Cedriya → Lac 1)")
     parser.add_argument("--speed",    type=float, default=40.0, help="Vitesse km/h (défaut: 40)")
     parser.add_argument("--interval", type=float, default=1.0,  help="Intervalle secondes (défaut: 1)")
     parser.add_argument("--loop",     action="store_true",      help="Boucler le trajet")
     parser.add_argument("--fallback", action="store_true",      help="Forcer interpolation linéaire (sans OSRM)")
     args = parser.parse_args()
+
+    # Sélectionner le jeu de stations selon le bus-id
+    stations = BUS_STATIONS.get(args.bus_id, STATIONS_BUS6)
+    if args.bus_id not in BUS_STATIONS:
+        print(f"  [Avertissement] Bus ID {args.bus_id} non défini — utilisation du circuit Bus 6 par défaut")
 
     print("=" * 62)
     print(f"  Simulateur Bus  |  ID={args.bus_id}  |  Vitesse={args.speed} km/h")
@@ -234,7 +261,7 @@ def main():
         while True:
             run += 1
             if run > 1:
-                print(f"\n\n[Loop #{run}] Redémarrage du trajet depuis Borj Cedriya...\n")
+                print(f"\n\n[Loop #{run}] Redémarrage du trajet depuis {stations[0]['name']}...\n")
 
             for i, (lat, lon, brg) in enumerate(timed_route, 1):
                 t0 = time.time()
